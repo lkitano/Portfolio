@@ -1,0 +1,146 @@
+---
+title: "Penguins"
+output: html_document
+date: "2025-09-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+Here are the libraries used for this viusualization and analysis.
+
+```{r}
+library(datasets)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(tibble)
+library(palmerpenguins)
+library(BSDA)
+library(ggcorrplot)
+
+```
+## Our Dataset
+
+This dataset contains 344 observations with 7 factors:
+
+Species: Denotes penguin species
+Island: Denotes an island in the Palmer Archipelago where the penguin was 
+observed.
+Bill_length_mm:  Bill length in millimeters
+Bill_depth_mm: Bill Depth in millimeters
+Flipper_length_mm: Flipper Length in millimeters
+Body_mass_g: Body mass in grams
+Sex: Denotes penguin sex (Male/Female)
+Year: Denotes study year(2007,2008, or 2009)
+
+```{r}
+count(penguins)
+summary(penguins)
+head(penguins)
+```
+
+
+
+
+## Including Plots
+
+
+```{r}
+penguins %>% 
+  ggplot(aes(x = species, fill = sex)) + 
+  geom_bar(position = "dodge") +
+  theme_bw()
+  
+  
+```
+Suppose we want to analyze if there analyze the factors behind penguin mass.
+For example, let's see if flipper length is a significant factor in predicting
+body mass. In this graph, We can see that there seems to be some positive 
+relationship between flipper length and body mass. Adelie and Chinstrap Penguins
+seem to have similar body mass and dimensions, and are on average smaller
+than Gentoo penguins.
+```{r pressure, echo=FALSE}
+penguins %>%
+  ggplot(aes(x = flipper_length_mm, y = body_mass_g, 
+                        color = species, shape = species)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) +
+  xlab("Flipper Length (mm)") +
+  ylab("Body Mass (g)") +
+  ggtitle("Flipper Length vs Body Mass Across Penguin Species") +
+  labs(color = "Species", shape = "Species") +
+  theme_bw()
+penguins %>%
+  ggplot(aes(x = bill_length_mm, y = body_mass_g, 
+                        color = species, shape = species)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) +
+  xlab("Bill Length (mm)") +
+  ylab("Body Mass (g)") +
+  ggtitle("Bill Length vs Body Mass Across Penguin Species") +
+  labs(color = "Species", shape = "Species") +
+  theme_bw()
+penguins %>%
+  ggplot(aes(x = bill_depth_mm, y = body_mass_g, 
+                        color = species, shape = species)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) +
+  xlab("Bill Depth (mm)") +
+  ylab("Body Mass (g)") +
+  ggtitle("Bill Depth vs Body Mass Across Penguin Species") +
+  labs(color = "Species", shape = "Species") +
+  theme_bw()
+
+
+
+```
+
+If we do a simple regression analysis, we can see that flipper length is a
+significant predictor for body mass, with an extremely small p-value well
+below our significance level of 0.05. With ever 1mm increase with flipper length,
+we can expect body mass to increase by 49 grams
+```{r}
+penguin.body.mass <- lm(body_mass_g ~ flipper_length_mm, data = penguins)
+summary(penguin.body.mass)
+```
+Suppose we want to do a multilinear model using all continous variables: 
+Flipper length, bill length, and bill depth. If we want to do a multilinear model, 
+we should analyze the normality, homoscedacity, and multicollinearity between 
+these variables first. We can see that there is a small correlation betwen bill 
+length and flipper length, but not large enough to remove either of them based on
+multicollinearity alone.
+
+```{r}
+penguin.body.mass.full <- lm(body_mass_g ~ flipper_length_mm + bill_length_mm+bill_depth_mm, data = penguins)
+penguins.clean <- na.omit(penguins)
+penguins.reduced <- penguins.clean %>% subset(select = c(flipper_length_mm, bill_length_mm, bill_depth_mm))
+penguins.reduced
+penguins_corr <- cor(penguins.reduced)
+ggcorrplot(penguins_corr, hc.order = TRUE, type = "lower", lab = TRUE)
+```
+
+Let's also take a look at our residuals.  Looking at our qq plot, we can see
+that our residuals line out nicely, suggesting that they follow a normal districution.
+
+```{r}
+qqnorm(penguin.body.mass.full$residuals)
+qqline(penguin.body.mass.full$residuals)
+```
+
+We have fulfilled all the assumptions for using multicollinearity, but is the
+new model actually more effective than the old one? Using ANOVA and a P-value of
+0.05, we reach a p-value of 0.17, which means we fail to reject the null. We cannot
+conclude that the full model is a better fit than the reduced model.
+```{r}
+?anova
+anova(penguin.body.mass.full,penguin.body.mass)
+```
+
+
+
+
+
