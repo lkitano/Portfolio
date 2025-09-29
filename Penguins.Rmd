@@ -1,18 +1,28 @@
 ---
 title: "Penguins"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2025-09-26"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+#tinytex::install_tinytex()
+knitr::opts_chunk$set(echo = FALSE)
 ```
+## Introduction
+
+This is a simple analysis of the Penguins dataset from the Palmer Penguins dataset.
+This analysis will go over linear regression, data visualization, anova, and t-testing. 
+If you would like at the code for this project, please visit the markdown file.
+
+
 
 ## Libraries
 
 Here are the libraries used for this viusualization and analysis.
 
-```{r}
+```{r echo=TRUE, results='hide'}
 library(datasets)
 library(ggplot2)
 library(tidyverse)
@@ -25,20 +35,19 @@ library(ggcorrplot)
 ```
 ## Our Dataset
 
-This dataset contains 344 observations with 7 factors:
+This dataset contains 344 observations with 7 factors: \newline
 
-Species: Denotes penguin species
-Island: Denotes an island in the Palmer Archipelago where the penguin was 
-observed.
-Bill_length_mm:  Bill length in millimeters
-Bill_depth_mm: Bill Depth in millimeters
-Flipper_length_mm: Flipper Length in millimeters
-Body_mass_g: Body mass in grams
-Sex: Denotes penguin sex (Male/Female)
+Species: Denotes penguin species \newline
+Island: Denotes an island in the Palmer Archipelago where the penguin was
+observed. \newline
+Bill_length_mm:  Bill length in millimeters \newline
+Bill_depth_mm: Bill Depth in millimeters \newline
+Flipper_length_mm: Flipper Length in millimeters \newline
+Body_mass_g: Body mass in grams \newline
+Sex: Denotes penguin sex (Male/Female)\newline
 Year: Denotes study year(2007,2008, or 2009)
 
 ```{r}
-count(penguins)
 summary(penguins)
 head(penguins)
 ```
@@ -46,101 +55,128 @@ head(penguins)
 
 
 
-## Including Plots
+## Initial Visualizations
 
+Before we dive into some regression analysis, let's get an overall understanding
+of what our data looks like and how it is distributed.  With these graphs, we can
+see that we have a roughly equal amount of male and female penguins. Adelie penguins
+are the most plentiful, and are also the only species found on every island.
 
 ```{r}
-penguins %>% 
+penguins.clean <- na.omit(penguins)
+penguins.clean %>% 
   ggplot(aes(x = species, fill = sex)) + 
   geom_bar(position = "dodge") +
+  xlab("Island") +
+  ylab("Amount") +
+  labs(fill = "Sex") +
+  theme_bw()
+
+penguins.clean %>% 
+  ggplot(aes(x = island, fill = species)) + 
+  geom_bar(position = "dodge") +
+  xlab("Island") +
+  ylab("Amount") +
+  labs(fill = "Species") +
   theme_bw()
   
   
 ```
 Suppose we want to analyze if there analyze the factors behind penguin mass.
-For example, let's see if flipper length is a significant factor in predicting
-body mass. In this graph, We can see that there seems to be some positive 
-relationship between flipper length and body mass. Adelie and Chinstrap Penguins
-seem to have similar body mass and dimensions, and are on average smaller
-than Gentoo penguins.
+The following are graphs depicting the relationship between body dimensions and
+body mass across all species of penguins. Adelie and Chinstrap Penguins
+seem to have similar dimensions in regards to flipper length and bill depth.
+We can also see that there seems to be some positive 
+relationship between body dimenstions and body mass. 
+
+
 ```{r pressure, echo=FALSE}
-penguins %>%
+penguins.clean %>%
   ggplot(aes(x = flipper_length_mm, y = body_mass_g, 
                         color = species, shape = species)) +
   geom_point() + 
   geom_smooth(method = "lm", se = FALSE) +
-  xlab("Flipper Length (mm)") +
-  ylab("Body Mass (g)") +
-  ggtitle("Flipper Length vs Body Mass Across Penguin Species") +
-  labs(color = "Species", shape = "Species") +
+  labs(color = "Species", shape = "Species", x = "Flipper Length (mm)", 
+       y = "Body Mass (g)", title = "Flipper Length vs Body Mass Across Penguin Species") +
   theme_bw()
-penguins %>%
+
+penguins.clean %>%
   ggplot(aes(x = bill_length_mm, y = body_mass_g, 
                         color = species, shape = species)) +
   geom_point() + 
   geom_smooth(method = "lm", se = FALSE) +
-  xlab("Bill Length (mm)") +
-  ylab("Body Mass (g)") +
-  ggtitle("Bill Length vs Body Mass Across Penguin Species") +
-  labs(color = "Species", shape = "Species") +
+   labs(color = "Species", shape = "Species", x = "Bill Length (mm)", 
+       y = "Body Mass (g)", title = "Bill Length vs Body Mass Across Penguin Species") +
   theme_bw()
-penguins %>%
+
+penguins.clean %>%
   ggplot(aes(x = bill_depth_mm, y = body_mass_g, 
                         color = species, shape = species)) +
   geom_point() + 
   geom_smooth(method = "lm", se = FALSE) +
-  xlab("Bill Depth (mm)") +
-  ylab("Body Mass (g)") +
-  ggtitle("Bill Depth vs Body Mass Across Penguin Species") +
+  labs(color = "Species", shape = "Species", x = "Bill Depth (mm)", 
+       y = "Body Mass (g)", title = "Bill Depth vs Body Mass Across Penguin Species") +
   labs(color = "Species", shape = "Species") +
   theme_bw()
 
 
 
 ```
-
-If we do a simple regression analysis, we can see that flipper length is a
-significant predictor for body mass, with an extremely small p-value well
-below our significance level of 0.05. With ever 1mm increase with flipper length,
-we can expect body mass to increase by 49 grams
+Since the Gentoo seem to be isolated from the other species regarding body mass, 
+let's focus on them for now. LEt's start with a simple regression analysis
+using flipper length. If we do a simple regression analysis, we can see 
+that flipper length is a significant predictor for body mass, with an extremely 
+small p-value wellbelow our significance level of 0.05. We can reject the null and
+assume the alternative is true: flipper length is a significant predictor for 
+body mass. With ever 1mm increase  with flipper length for a Gentoo penguin, 
+we can expect body mass to increase by 54 grams.
 ```{r}
-penguin.body.mass <- lm(body_mass_g ~ flipper_length_mm, data = penguins)
-summary(penguin.body.mass)
+gentoo.penguins <- penguins.clean %>% filter(species == "Gentoo")
+gentoo.body.mass <- lm(body_mass_g ~ flipper_length_mm, data = gentoo.penguins)
+summary(gentoo.body.mass)
 ```
-Suppose we want to do a multilinear model using all continous variables: 
-Flipper length, bill length, and bill depth. If we want to do a multilinear model, 
-we should analyze the normality, homoscedacity, and multicollinearity between 
-these variables first. We can see that there is a small correlation betwen bill 
-length and flipper length, but not large enough to remove either of them based on
-multicollinearity alone.
 
+
+Suppose we wanted to compare the mass of the same species penguins across islands.
+Perhaps the habitat of each island could have an effect on the penguins, causing them
+to be larger, for example. For this analysis, let's focus on only Adelie penguins,
+since they are the only species found across all three islands.  From this boxplot,
+we can see that there initially seems to be quite a different in mass between male
+and female penguins, and only a small difference between islands.
 ```{r}
-penguin.body.mass.full <- lm(body_mass_g ~ flipper_length_mm + bill_length_mm+bill_depth_mm, data = penguins)
 penguins.clean <- na.omit(penguins)
-penguins.reduced <- penguins.clean %>% subset(select = c(flipper_length_mm, bill_length_mm, bill_depth_mm))
-penguins.reduced
-penguins_corr <- cor(penguins.reduced)
-ggcorrplot(penguins_corr, hc.order = TRUE, type = "lower", lab = TRUE)
+adelie.penguins <- penguins.clean %>% filter(species == "Adelie")
+
+adelie.penguins %>% ggplot(aes(x = island, y = body_mass_g, fill = sex)) +
+  geom_boxplot() +
+  xlab("Island") +
+  ylab("Body Mass (g)") +
+  labs(x = "Island", y = "Body Mass(g)", fill = "Sex",
+       title = "Adlie penguin body mass across Biscoe, Dream, and Torgerson Islands") +
+  theme_bw() 
+
+
+
 ```
 
-Let's also take a look at our residuals.  Looking at our qq plot, we can see
-that our residuals line out nicely, suggesting that they follow a normal districution.
 
+Using ANOVA in R confirms these results: we result in a p-value well above our p-value 
+of 0.05. We fail to reject the null and cannot confirm the alternative to be true.
+There is not enough evidence to assume the island has an effect on the Adelie
+penguin's mass.
 ```{r}
-qqnorm(penguin.body.mass.full$residuals)
-qqline(penguin.body.mass.full$residuals)
+adelie.islands.fit <- aov(body_mass_g ~ island, data = adelie.penguins)
+summary(adelie.islands.fit)
 ```
-
-We have fulfilled all the assumptions for using multicollinearity, but is the
-new model actually more effective than the old one? Using ANOVA and a P-value of
-0.05, we reach a p-value of 0.17, which means we fail to reject the null. We cannot
-conclude that the full model is a better fit than the reduced model.
+Now let's see if there is a significant difference in mass for the sex of an 
+Adelie penguin. We can use a simple t-test for this.  In these results, we can see
+that the mean mass in grams for males is significantly larger than females.
+We additionally have a p-value of nearly 0, meaning that we reject the null and
+confirm the alternative as true. There is a statistically significant difference
+between the mass of male and female adelie penuins.
 ```{r}
-?anova
-anova(penguin.body.mass.full,penguin.body.mass)
+t.test(body_mass_g ~ sex,data = adelie.penguins)
 ```
-
-
 
 
 
