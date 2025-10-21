@@ -1,3 +1,13 @@
+'''
+To train our ML Classifier, we had to use an already existing dataset for sentiment analysis, since our original dataset does not have sentiment already as a column. 
+Fortunately, the NLTK library has just what we need: an existing dataset of tweets with their sentiments. We trained our model on these tweets, and then applied it to our dataset.
+This python file shows the process of obtaining and training this model.
+
+
+'''
+
+
+
 import pandas as pd
 import ssl
 import re
@@ -42,7 +52,7 @@ text = twitter_samples.strings('tweets.20150430-223406.json')
 stop_words = set(stopwords.words('english'))
 vectorizer = CountVectorizer(token_pattern=r'\b\w+\b')
 
-#sampled_tweets.csv is the original twitter dataset that cannot be shared. For a small portion of the dataset, see tweets_num_crimes.csv
+#sampled_tweets.csv is the original twitter dataset that cannot be shared. For a small portion of the dataset, see tweets_num_crimes.csv.
 tweets = pd.read_csv("sampled_tweets.csv", lineterminator='\n')
 tweets.dropna(inplace = True)
 
