@@ -31,21 +31,20 @@ library(tibble)
 library(palmerpenguins)
 library(BSDA)
 library(ggcorrplot)
-
 ```
 ## Our Dataset
 
-This dataset contains 344 observations with 7 factors: \newline
+This dataset contains 344 observations with 7 factors:  
 
-Species: Denotes penguin species \newline
+Species: Denotes penguin species  
 Island: Denotes an island in the Palmer Archipelago where the penguin was
-observed. \newline
-Bill_length_mm:  Bill length in millimeters \newline
-Bill_depth_mm: Bill Depth in millimeters \newline
-Flipper_length_mm: Flipper Length in millimeters \newline
-Body_mass_g: Body mass in grams \newline
-Sex: Denotes penguin sex (Male/Female)\newline
-Year: Denotes study year(2007,2008, or 2009)
+observed.  
+Bill_length_mm:  Bill length in millimeters.  
+Bill_depth_mm: Bill Depth in millimeters.  
+Flipper_length_mm: Flipper Length in millimeters.  
+Body_mass_g: Body mass in grams.  
+Sex: Denotes penguin sex (Male/Female).  
+Year: Denotes study year(2007,2008, or 2009)  
 
 ```{r}
 summary(penguins)
@@ -82,6 +81,8 @@ penguins.clean %>%
   
   
 ```
+
+
 Suppose we want to analyze if there analyze the factors behind penguin mass.
 The following are graphs depicting the relationship between body dimensions and
 body mass across all species of penguins. Adelie and Chinstrap Penguins
@@ -122,29 +123,66 @@ penguins.clean %>%
 
 
 ```
-Since the Gentoo seem to be isolated from the other species regarding body mass, 
-let's focus on them for now. LEt's start with a simple regression analysis
+## Model Creation and Analysis
+
+Now let's create some models that can help us predict certian dimensions or 
+features of a given penguin. For these models, let us assume asignificance level of 0.05. 
+Suppose we wanted to predict a penguin's body mass using its other body dimensions.
+Since different species will have different dimensions, we should focus on one species at a time.
+In the above visualizations, we can observe that the Gentoo are isolated from the other species regarding body mass, 
+let's focus on them for now. Let's start with a simple regression analysis
 using flipper length. If we do a simple regression analysis, we can see 
 that flipper length is a significant predictor for body mass, with an extremely 
-small p-value wellbelow our significance level of 0.05. We can reject the null and
+small p-value well below our significance level of 0.05. We can reject the null and
 assume the alternative is true: flipper length is a significant predictor for 
-body mass. With ever 1mm increase  with flipper length for a Gentoo penguin, 
+body mass. Our model is as follows:  
+
+$$BodyMass = -6674.20 + 54.12FlipperLength$$
+
+
+With ever 1mm increase  with flipper length for a Gentoo penguin, 
 we can expect body mass to increase by 54 grams.
 ```{r}
 gentoo.penguins <- penguins.clean %>% filter(species == "Gentoo")
 gentoo.body.mass <- lm(body_mass_g ~ flipper_length_mm, data = gentoo.penguins)
 summary(gentoo.body.mass)
 ```
+Suppose we wanted to include more factors into this model and make it a multilinear model, 
+such as Bill Length and Bill Depth. In order to do this, we have to assume that Bill Depth and Bill Length 
+do not have too much correlation with the other variables, and also have a linear relationship with Body Mass,
+Our scatterplots above demonstrate the latter, so we should verify the former through a correlation matrix
 
-
-Suppose we wanted to compare the mass of the same species penguins across islands.
-Perhaps the habitat of each island could have an effect on the penguins, causing them
-to be larger, for example. For this analysis, let's focus on only Adelie penguins,
-since they are the only species found across all three islands.  From this boxplot,
-we can see that there initially seems to be quite a different in mass between male
-and female penguins, and only a small difference between islands.
 ```{r}
-penguins.clean <- na.omit(penguins)
+penguins.reduced <- penguins.clean %>% subset(select = c(flipper_length_mm, bill_length_mm, bill_depth_mm))
+penguins.corr <- cor(penguins.reduced)
+ggcorrplot(penguins.corr, hc.order = TRUE, type = "lower", lab = TRUE) 
+```
+Bill Length and Flipper Length have a relatively high correlation of 0.65. This is not so high that we exclude Bill Length in a full model, 
+but it is possible that it could affect the results in some way and we should keep it in mind. Now all there is to do is create our full model and test it against our reduced one. 
+
+```{r}
+gentoo.body.mass.full <- lm(body_mass_g ~ flipper_length_mm+ bill_depth_mm + bill_length_mm,data = gentoo.penguins)
+summary(gentoo.body.mass.full)
+anova(gentoo.body.mass, gentoo.body.mass.full)
+```
+These results are promising. According to our anova testing, we result in a p-value well below our significance level of 0.05, meaning we can reject the null and assume that the alternative is true: Our full model is a better fit than our reduced one. Our full model also has significant p-values for all of our variables. Our final model regarding Gentoo penguin body mass is as follows:  
+
+$$BodyMass = -4444.42 + 23.26FlipperLength + 180.01BillDepth + 37.52BillLength$$
+This means that for every 1mm increase in Flipper Length, Bill Depth, and Bill Length, we can expect approximately a 23, 180, and 38 gram increase in body mass, respectively, when holding all other variables constant. If we have a penguin with a flipper length of 220mm, bill depth of 13 mm, and bill length of 51mm, we can expect a body mass of -4444.42 + 23.26(220) + 180.01(13) + 37.52(51) = 4926.3 grams. 
+
+```{r}
+head(gentoo.penguins)
+
+```
+
+Suppose we wanted to compare the mass of the same species penguins across islands and sex.
+Perhaps the habitat of each island could have an effect on the penguins, causing them
+to be larger, or male penguins are on average larger than female penguins, for example. 
+For this analysis, let's focus on only Adelie penguins,since they are the only 
+species found across all three islands.  From this boxplot,we can see that there 
+initially seems to be quite a different in mass between male and female penguins, 
+and only a small difference between islands.
+```{r}
 adelie.penguins <- penguins.clean %>% filter(species == "Adelie")
 
 adelie.penguins %>% ggplot(aes(x = island, y = body_mass_g, fill = sex)) +
@@ -152,7 +190,7 @@ adelie.penguins %>% ggplot(aes(x = island, y = body_mass_g, fill = sex)) +
   xlab("Island") +
   ylab("Body Mass (g)") +
   labs(x = "Island", y = "Body Mass(g)", fill = "Sex",
-       title = "Adlie penguin body mass across Biscoe, Dream, and Torgerson Islands") +
+       title = "Adelie penguin body mass across Biscoe, Dream, and Torgerson Islands") +
   theme_bw() 
 
 
@@ -160,9 +198,9 @@ adelie.penguins %>% ggplot(aes(x = island, y = body_mass_g, fill = sex)) +
 ```
 
 
-Using ANOVA in R confirms these results: we result in a p-value well above our p-value 
+Using ANOVA in R for body mass between islands confirms these results: we result in a p-value well above our significance level
 of 0.05. We fail to reject the null and cannot confirm the alternative to be true.
-There is not enough evidence to assume the island has an effect on the Adelie
+There is not enough evidence to assume that the island has an effect on the Adelie
 penguin's mass.
 ```{r}
 adelie.islands.fit <- aov(body_mass_g ~ island, data = adelie.penguins)
@@ -178,5 +216,7 @@ between the mass of male and female adelie penuins.
 t.test(body_mass_g ~ sex,data = adelie.penguins)
 ```
 
+## Conclusion
 
+This was an exploratory analysis of the palmer penguins dataset where we built a linear model that could predict a penguin's body mass given its body dimensions, as well as analyzed the difference between penguin populations between islands and penguin sex. Further research of this dataset could include using logistic regression or creating a ML classifier to identify a penguin species. One thing that should ne noted about this dataset is that it is quite small. The original dataset has only a few hundred observations. The methods used in this project and especially the creation of an ML classifier would result in more accurate models if used on a larger sample size that could more accurately represent the total penguin population.
 
