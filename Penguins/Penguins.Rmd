@@ -12,11 +12,9 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 ## Introduction
 
-This is a simple analysis of the Penguins dataset from the Palmer Penguins dataset.
+This is a simple analysis of the Palmer Penguins dataset.
 This analysis will go over linear regression, data visualization, anova, and t-testing. 
 If you would like at the code for this project, please visit the markdown file.
-
-
 
 ## Libraries
 
@@ -47,7 +45,6 @@ Sex: Denotes penguin sex (Male/Female).
 Year: Denotes study year(2007,2008, or 2009)  
 
 ```{r}
-summary(penguins)
 head(penguins)
 ```
 
@@ -120,18 +117,19 @@ penguins.clean %>%
   labs(color = "Species", shape = "Species") +
   theme_bw()
 
-
-
 ```
+
+
+
 ## Model Creation and Analysis
 
-Now let's create some models that can help us predict certian dimensions or 
-features of a given penguin. For these models, let us assume asignificance level of 0.05. 
+Now let's create some models that can help us predict certain dimensions or 
+features of a given penguin. For these models, let us assume a significance level of 0.05. 
 Suppose we wanted to predict a penguin's body mass using its other body dimensions.
-Since different species will have different dimensions, we should focus on one species at a time.
+Since different species will have different attributes, we should focus on one species at a time.
 In the above visualizations, we can observe that the Gentoo are isolated from the other species regarding body mass, 
 let's focus on them for now. Let's start with a simple regression analysis
-using flipper length. If we do a simple regression analysis, we can see 
+using flipper length. In this reduced model, we can see 
 that flipper length is a significant predictor for body mass, with an extremely 
 small p-value well below our significance level of 0.05. We can reject the null and
 assume the alternative is true: flipper length is a significant predictor for 
@@ -140,7 +138,7 @@ body mass. Our model is as follows:
 $$BodyMass = -6674.20 + 54.12FlipperLength$$
 
 
-With ever 1mm increase  with flipper length for a Gentoo penguin, 
+With every 1mm increase with flipper length for a Gentoo penguin, 
 we can expect body mass to increase by 54 grams.
 ```{r}
 gentoo.penguins <- penguins.clean %>% filter(species == "Gentoo")
@@ -148,9 +146,7 @@ gentoo.body.mass <- lm(body_mass_g ~ flipper_length_mm, data = gentoo.penguins)
 summary(gentoo.body.mass)
 ```
 Suppose we wanted to include more factors into this model and make it a multilinear model, 
-such as Bill Length and Bill Depth. In order to do this, we have to assume that Bill Depth and Bill Length 
-do not have too much correlation with the other variables, and also have a linear relationship with Body Mass,
-Our scatterplots above demonstrate the latter, so we should verify the former through a correlation matrix
+such as Bill Length and Bill Depth. In order to do this, we have to establish that these variables have a linear relationship with body mass, and share low multicolinearity.  Our scatterplots above demonstrate the latter, so we should verify the former through a correlation matrix
 
 ```{r}
 penguins.reduced <- penguins.clean %>% subset(select = c(flipper_length_mm, bill_length_mm, bill_depth_mm))
@@ -158,14 +154,21 @@ penguins.corr <- cor(penguins.reduced)
 ggcorrplot(penguins.corr, hc.order = TRUE, type = "lower", lab = TRUE) 
 ```
 Bill Length and Flipper Length have a relatively high correlation of 0.65. This is not so high that we exclude Bill Length in a full model, 
-but it is possible that it could affect the results in some way and we should keep it in mind. Now all there is to do is create our full model and test it against our reduced one. 
+but it is possible that it could affect the results in some way and we should keep it in mind. We also have to test for normality and homoscedasticity in our full model. We can do this by using a qq plot and plotting our fitted values against our residual ones. 
 
 ```{r}
 gentoo.body.mass.full <- lm(body_mass_g ~ flipper_length_mm+ bill_depth_mm + bill_length_mm,data = gentoo.penguins)
 summary(gentoo.body.mass.full)
 anova(gentoo.body.mass, gentoo.body.mass.full)
+qqnorm(gentoo.body.mass.full$residuals)
+qqline(gentoo.body.mass.full$residuals)
+gentoo.body.mass.full %>% 
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  theme_bw()
 ```
-These results are promising. According to our anova testing, we result in a p-value well below our significance level of 0.05, meaning we can reject the null and assume that the alternative is true: Our full model is a better fit than our reduced one. Our full model also has significant p-values for all of our variables. Our final model regarding Gentoo penguin body mass is as follows:  
+
+These results are promising. According to our anova testing, we result in a p-value well below our significance level of 0.05, meaning we can reject the null and assume that the alternative is true: Our full model is a better fit than our reduced one. Our full model also has significant p-values for all of our variables. We are also able to establish multivariate normality and homoscedasticity. Our qq plots lie across a straight line indicating that our residuals are normally distributed, and our fitted vs residual plot has little to no discernible pattern, indicitating that these residuals have constant variance along every point in our model. This is all enough suggestion to abandon our previous model and use our full model as a predictor for body mass. The resulting model is as follows:
 
 $$BodyMass = -4444.42 + 23.26FlipperLength + 180.01BillDepth + 37.52BillLength$$
 This means that for every 1mm increase in Flipper Length, Bill Depth, and Bill Length, we can expect approximately a 23, 180, and 38 gram increase in body mass, respectively, when holding all other variables constant. If we have a penguin with a flipper length of 220mm, bill depth of 13 mm, and bill length of 51mm, we can expect a body mass of -4444.42 + 23.26(220) + 180.01(13) + 37.52(51) = 4926.3 grams. 
