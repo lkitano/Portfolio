@@ -1,0 +1,1 @@
+This file is an analysis of the Car quality dataset (https://archive.ics.uci.edu/dataset/19/car+evaluation). This project uses a classification ML model that uses a number of categorical varaibles to predict a car's quality.
