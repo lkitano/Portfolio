@@ -12,7 +12,12 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 ## Introduction
 
-The Palmer Penguins dataset is a simple dataset procured by Dr, Kristen Gorman at the Palmer Station Antartica, and contains body measurement data across three species of penguins (Gentoo, Adelie, and Chinstrap) across three islands (Dream, Torgerson, and Biscoe).Although this is a smaller dataset, it serves as a valuable tool to demonstrate basic analysis techniques such as t-testing, ANOVA, and linear regression. This paper will analyze the differences across the three penguin species and islands, and create models to help approximate a given penguins dimensions. 
+The Palmer Penguins dataset is a simple dataset procured by Dr, Kristen Gorman at the Palmer Station Antartica, 
+and contains body measurement data across three species of penguins (Gentoo, Adelie, and Chinstrap) a
+cross three islands (Dream, Torgerson, and Biscoe).Although this is a smaller dataset, it serves as a valuable 
+tool to demonstrate basic analysis techniques such as t-testing, ANOVA, and linear regression. T
+his paper will analyze the differences across the three penguin species and islands, and create 
+models to help approximate a given penguins dimensions. 
 
 ## Libraries
 
